@@ -140,36 +140,104 @@ public class GameController : MonoBehaviour
         {
             return true;
         }
+        int indexFirst = (row1 * this.col + col1);
+        int indexLast = (row2 * this.col + col2);
+        List<int> list = new List<int>();
+        list = CheckVerticalBetweenTwoPoints(row1, row2, indexFirst, indexLast);
 
-        int dirRow = row2 - row1;
-        int dirCol = col2 - col1;
-
-        for (int i = col1;; i += dirCol)
+        if (list.Count == 0) return false;
+        for(int it = 0; it < list.Count; it++)
         {
-            // Check each col from 1->2
-            int slot = 0;
-            for(int j = row1;; j += dirRow)
+            if(CheckHorizontalBetweenTwoPoints(row1, list[it], col1, indexFirst, indexLast) && CheckHorizontalBetweenTwoPoints(row2, list[it], col2, indexFirst, indexLast))
             {
-                if(listControl[j*col + i] != 0)
-                {
-                    slot++;
-                }
-                if (j == row2 || row1 == row2) break;
+                return true;
             }
-
-            if(slot<=2)
-            {
-                //Check first item
-                if(CheckHorizontalBetweenTwoPoints(row1, col1, col2) && CheckHorizontalBetweenTwoPoints(row2,col2,col1))
-                {
-                    return true;
-                }
-            }
-
-            if (i == col2 || col1 == col2) break;
         }
 
         return false;
+    }
+
+    public List<int> CheckVerticalBetweenTwoPoints(int rowStart, int rowEnd, int exceptFirst, int exceptLast)
+    {
+        List<int> listVertical = new List<int> ();  
+        for(int j = 0; j < this.col; j++)
+        {
+            bool check = true;
+            if (rowEnd > rowStart)
+            {
+                for (int i = rowStart; i <= rowEnd; i++)
+                {
+                    int index = i * this.col + j;
+                    if (exceptFirst == index || exceptLast == index)
+                    {
+                        if (i == rowEnd) break;
+                        continue;
+                    }
+
+                    if (listControl[index] != 0)
+                    {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = rowEnd; i <= rowStart; i++)
+                {
+                    int index = i * this.col + j;
+                    if (exceptFirst == index || exceptLast == index)
+                    {
+                        if (i == rowEnd) break;
+                        continue;
+                    }
+
+                    if (listControl[index] != 0)
+                    {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+
+            if(check)
+            {
+                listVertical.Add(j);
+            }
+        }
+
+        return listVertical;
+    }
+
+    public bool CheckHorizontalBetweenTwoPoints(int selectRow , int colStart, int colEnd, int exceptFirst, int exceptLast)
+    {
+        if (colStart == colEnd) return true;
+        if (colEnd > colStart)
+        {
+            for (int j = colStart; j <= colEnd; j++)
+            {
+                int index = selectRow * this.col + j;
+                if (exceptFirst == index || exceptLast == index) continue;
+                if (listControl[index] != 0)
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            for (int j = colEnd; j <= colStart; j++)
+            {
+                int index = selectRow * this.col + j;
+                if (exceptFirst == index || exceptLast == index) continue;
+                if (listControl[index] != 0)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public bool CheckHorizontalBetweenTwoPoints(int row, int col1, int col2)
