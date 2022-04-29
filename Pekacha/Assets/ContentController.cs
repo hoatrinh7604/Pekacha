@@ -20,7 +20,6 @@ public class ContentController : MonoBehaviour
         GameObject temp = transform.GetChild(indexRow).gameObject;
         GameObject itemPrefab = Resources.Load<GameObject>("item_"+idItem);
         GameObject item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity, temp.transform);
-        //item.transform.SetSiblingIndex(indexCol);
         item.GetComponent<ItemController>().UpdatePos(indexRow, indexCol);
     }
 
@@ -71,6 +70,16 @@ public class ContentController : MonoBehaviour
             {
                 transform.GetChild(i).transform.GetChild(j).GetComponent<ItemController>().UpdatePos(i, j);
             }
+        }
+    }
+
+    public void Reset()
+    {
+        for(int i = transform.childCount - 1; i >= 0; i--)
+        {
+            GameObject temp = transform.GetChild(i).gameObject;
+            temp.transform.SetParent(null);
+            Destroy(temp);
         }
     }
 }

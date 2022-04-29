@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class GameController : MonoBehaviour
 {
@@ -33,10 +35,18 @@ public class GameController : MonoBehaviour
     [SerializeField] int[] list = {1,1,2,2,1,2};
     [SerializeField] int[] listControl = {1,1,2,2,1,2};
     [SerializeField] int[] listId = {1,2,3,4,5,6,7,8};
-    [SerializeField] int row = 6;
-    [SerializeField] int col = 6;
 
-    private float time;
+    private int row = 6;
+    private int col = 6;
+    [SerializeField] int[] rowLevel = {8, 10, 12};
+    [SerializeField] int[] colLevel = {6, 8, 10 };
+
+    [SerializeField] float time = 200;
+
+    private int remainingCouple;
+
+    private int shuffeRemaining;
+
 
     // Start is called before the first frame update
     void Start()
@@ -46,14 +56,25 @@ public class GameController : MonoBehaviour
         contentController.SpawItems(list,row);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-
+        time -= Time.deltaTime;
+        UpdateSliderValue(time);
+        if(time < 0)
+        {
+            GameOver(false);
+        }
     }
 
     public void StartGame()
     {
+        row = rowLevel[PlayerPrefs.GetInt("level")-1];
+        col = colLevel[PlayerPrefs.GetInt("level")-1];
+        remainingCouple = row * col;
+        shuffeRemaining = 3;
+        UpdateRemainingShuffe();
+        SetSliderValue(time);
+
         StartNewTurn();
     }
 
@@ -79,6 +100,13 @@ public class GameController : MonoBehaviour
             lastChoosingRowIndex = row;
             lastChoosingColIndex = col;
 
+            if(firstChoosingRowIndex == lastChoosingRowIndex && firstChoosingColIndex == lastChoosingColIndex)
+            {
+                contentController.UnTicked(firstChoosingRowIndex, firstChoosingColIndex);
+                contentController.UnTicked(lastChoosingRowIndex, lastChoosingColIndex);
+                StartNewTurn();
+            }
+
             if(idFirstChoosing == idLastChoosing)
             {
                 if(Checking(firstChoosingRowIndex, firstChoosingColIndex, lastChoosingRowIndex, lastChoosingColIndex))
@@ -87,6 +115,13 @@ public class GameController : MonoBehaviour
                     listControl[firstChoosingRowIndex * this.col + firstChoosingColIndex] = 0;
                     contentController.HideItem(lastChoosingRowIndex, lastChoosingColIndex);
                     listControl[lastChoosingRowIndex * this.col + lastChoosingColIndex] = 0;
+
+                    remainingCouple -= 2;
+                    if(remainingCouple <= 0)
+                    {
+                        GameOver(true);
+                    }
+                    StartNewTurn();
                 }
             }
         }
@@ -136,19 +171,29 @@ public class GameController : MonoBehaviour
 
     public bool Checking(int row1, int col1, int row2, int col2)
     {
-        if(CheckBorderLine(row1, col1, row2, col2))
-        {
+        // Check with border
+        if ((CheckWithLeftBorder(row1, col1) && CheckWithLeftBorder(row2, col2)) || (CheckWithRightBorder(row1, col1) && CheckWithRightBorder(row2, col2))
+            || (CheckWithTopBorder(row1, col1) && CheckWithTopBorder(row2, col2)) || (CheckWithBottomBorder(row1, col1) && CheckWithBottomBorder(row2, col2)))
             return true;
-        }
+
         int indexFirst = (row1 * this.col + col1);
         int indexLast = (row2 * this.col + col2);
-        List<int> list = new List<int>();
-        list = CheckVerticalBetweenTwoPoints(row1, row2, indexFirst, indexLast);
 
-        if (list.Count == 0) return false;
-        for(int it = 0; it < list.Count; it++)
+        //CheckVertical
+        List<int> listThroughVertical = GetListThroughVertical(row1, col1, row2, col2);
+        for (int it = 0; it < listThroughVertical.Count; it++)
         {
-            if(CheckHorizontalBetweenTwoPoints(row1, list[it], col1, indexFirst, indexLast) && CheckHorizontalBetweenTwoPoints(row2, list[it], col2, indexFirst, indexLast))
+            if(CheckThroughHorizontal(listThroughVertical[it], col1, row1, indexFirst) && CheckThroughHorizontal(listThroughVertical[it], col2, row2, indexLast))
+            {
+                return true;
+            }
+        }
+
+        //CheckHorizontal
+        List<int> listThroughHorizontal = GetListThroughHorizontal(row1, col1, row2, col2);
+        for (int it = 0; it < listThroughHorizontal.Count; it++)
+        {
+            if(CheckThroughVertical(listThroughHorizontal[it], row1, col1, indexFirst) && CheckThroughVertical(listThroughHorizontal[it], row2, col2, indexLast))
             {
                 return true;
             }
@@ -157,104 +202,159 @@ public class GameController : MonoBehaviour
         return false;
     }
 
-    public List<int> CheckVerticalBetweenTwoPoints(int rowStart, int rowEnd, int exceptFirst, int exceptLast)
+    #region Checking Logic
+    public List<int> GetListThroughVertical(int row1, int col1, int row2, int col2)
     {
-        List<int> listVertical = new List<int> ();  
-        for(int j = 0; j < this.col; j++)
+        List<int> list = new List<int>();
+        int index1 = (row1 * this.col + col1);
+        int index2 = (row2 * this.col + col2);
+        for (int i = 0; i < this.col; i++)
         {
-            bool check = true;
-            if (rowEnd > rowStart)
+            if(CheckThroughVertical(row1, row2, i, index1, index2))
             {
-                for (int i = rowStart; i <= rowEnd; i++)
-                {
-                    int index = i * this.col + j;
-                    if (exceptFirst == index || exceptLast == index)
-                    {
-                        if (i == rowEnd) break;
-                        continue;
-                    }
-
-                    if (listControl[index] != 0)
-                    {
-                        check = false;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                for (int i = rowEnd; i <= rowStart; i++)
-                {
-                    int index = i * this.col + j;
-                    if (exceptFirst == index || exceptLast == index)
-                    {
-                        if (i == rowEnd) break;
-                        continue;
-                    }
-
-                    if (listControl[index] != 0)
-                    {
-                        check = false;
-                        break;
-                    }
-                }
-            }
-
-            if(check)
-            {
-                listVertical.Add(j);
+                list.Add(i);
             }
         }
 
-        return listVertical;
+        return list;
     }
 
-    public bool CheckHorizontalBetweenTwoPoints(int selectRow , int colStart, int colEnd, int exceptFirst, int exceptLast)
+    public List<int> GetListThroughHorizontal(int row1, int col1, int row2, int col2)
     {
-        if (colStart == colEnd) return true;
-        if (colEnd > colStart)
+        List<int> list = new List<int>();
+        int index1 = (row1 * this.col + col1);
+        int index2 = (row2 * this.col + col2);
+        for (int j = 0; j < this.row; j++)
         {
-            for (int j = colStart; j <= colEnd; j++)
+            if (CheckThroughHorizontal(col1, col2, j, index1, index2))
             {
-                int index = selectRow * this.col + j;
-                if (exceptFirst == index || exceptLast == index) continue;
-                if (listControl[index] != 0)
-                {
-                    return false;
-                }
+                list.Add(j);
             }
         }
-        else
+
+        return list;
+    }
+
+    public bool CheckThroughVertical(int row1, int row2, int col, int index1, int index2)
+    {
+        int start = row1;
+        int end = row2;
+        if(end < start)
         {
-            for (int j = colEnd; j <= colStart; j++)
+            start = row2;
+            end = row1;
+        }
+
+        for(int j = start; j <= end;j++)
+        {
+            int index = j * this.col + col;
+
+            if (index == index1 || index == index2) continue;
+            if(listControl[index] != 0)
             {
-                int index = selectRow * this.col + j;
-                if (exceptFirst == index || exceptLast == index) continue;
-                if (listControl[index] != 0)
-                {
-                    return false;
-                }
+                return false;
             }
         }
 
         return true;
     }
 
-    public bool CheckHorizontalBetweenTwoPoints(int row, int col1, int col2)
+    public bool CheckThroughHorizontal(int col1, int col2, int row, int index1, int index2)
     {
-        int slot = 0;
-        int dir = col2 - col1;
-        for (int i = col1;; i += dir)
+        int start = col1;
+        int end = col2;
+        if (end < start)
         {
-            if (listControl[row * col + i] != 0)
-            {
-                slot++;
-            }
-            if (i == col2) break;
+            start = col2;
+            end = col1;
         }
 
-        return (slot<=2)?true:false;
+        for (int i = start; i <= end; i++)
+        {
+            int index = row * this.col + i;
+
+            if (index == index1 || index == index2) continue;
+            if (listControl[index] != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
+
+    public bool CheckThroughHorizontal(int col1, int col2, int row, int index0)
+    {
+        int start = col1;
+        int end = col2;
+        if (end < start)
+        {
+            start = col2;
+            end = col1;
+        }
+
+        for (int i = start; i <= end; i++)
+        {
+            int index = row * this.col + i;
+
+            if (index == index0) continue;
+            if (listControl[index] != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool CheckThroughVertical(int row1, int row2, int col, int index0)
+    {
+        int start = row1;
+        int end = row2;
+        if (end < start)
+        {
+            start = row2;
+            end = row1;
+        }
+
+        for (int j = start; j <= end; j++)
+        {
+            int index = j * this.col + col;
+
+            if (index == index0) continue;
+            if (listControl[index] != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool CheckWithLeftBorder(int row, int col)
+    {
+        int index = row * this.col + col;
+        return CheckThroughHorizontal(0, col, row, index);
+    }
+
+    public bool CheckWithRightBorder(int row, int col)
+    {
+        int index = row * this.col + col;
+        return CheckThroughHorizontal(col, this.col-1, row, index);
+    }
+
+    public bool CheckWithTopBorder(int row, int col)
+    {
+        int index = row * this.col + col;
+        return CheckThroughVertical(0, row, col, index);
+    }
+
+    public bool CheckWithBottomBorder(int row, int col)
+    {
+        int index = row * this.col + col;
+        return CheckThroughVertical(row, this.row-1, col, index);
+    }
+
 
     public bool CheckBorderLine(int row1, int col1, int row2, int col2)
     {
@@ -269,57 +369,64 @@ public class GameController : MonoBehaviour
         return false;
     }
 
-    public bool CheckRemainingCouple()
-    {
-        List<int> remainingSlot = new List<int>();
-        for (int i = 0; i < listControl.Length; i++)
-        {
-            if (listControl[i] != 0)
-            {
-                remainingSlot.Add(i);
-            }
-        }
+    #endregion
 
-        for(int i = 0; i < remainingSlot.Count - 1; i++)
-        {
-            for(int j = i+1; j < remainingSlot.Count; j++)
-            {
-                if (Checking(remainingSlot[i] % col, remainingSlot[i] % row, remainingSlot[j] % col, remainingSlot[j] % row))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
+    #region Shuffe feature
     public void Shuffe()
     {
-        List<int> remainingSlot = new List<int>();
+        List<int> remainingList = new List<int>();
+        for(int i = 0; i < listControl.Length; i++)
+        {
+            if(listControl[i] != 0)
+            {
+                remainingList.Add(i);
+            }
+        }
+
         for (int i = 0; i < listControl.Length; i++)
         {
             if (listControl[i] != 0)
             {
-                remainingSlot.Add(i);
+                int switchIndex = remainingList[Random.Range(0, remainingList.Count - 1)];
+
+                int temp = listControl[i];
+                listControl[i] = listControl[switchIndex];
+                listControl[switchIndex] = temp;
             }
         }
 
-        for(int i = 0; i < remainingSlot.Count; i++)
-        {
-            int switchItem = Random.Range(0, remainingSlot.Count - 1);
-            int currentItemRow = remainingSlot[i] / col;
-            int currentItemCol = (remainingSlot[i] - currentItemRow * col) % col;
-            int nextItemRow = remainingSlot[switchItem] / col;
-            int nextItemCol = (remainingSlot[switchItem] - nextItemRow * col) % col;
-
-            int idTemp = listControl[currentItemRow * col + currentItemCol];
-            listControl[currentItemRow * col + currentItemCol] = listControl[nextItemRow * col + nextItemCol];
-            listControl[nextItemRow * col + nextItemCol] = idTemp;
-
-            contentController.ChangeSibling(currentItemRow, currentItemCol, nextItemRow, nextItemCol+1);
-            contentController.ChangeSibling(nextItemRow, nextItemCol, currentItemRow, currentItemCol);
-
-            contentController.UpdatePosItems();
-        }
+        list = listControl;
     }
 
+    public void ShuffeAndRecreated()
+    {
+        shuffeRemaining--;
+        if (shuffeRemaining < 0) return;
+        UpdateRemainingShuffe();
+        Shuffe();
+        contentController.Reset();
+        contentController.SpawItems(list, row);
+        StartNewTurn();
+    }
+    #endregion
+
+    public void GameOver(bool isWin)
+    {
+        GetComponent<UIController>().GameOver(isWin);
+    }
+
+    public void UpdateRemainingShuffe()
+    {
+        GetComponent<UIController>().UpdateRemainingShuffe(shuffeRemaining);
+    }
+
+    public void UpdateSliderValue(float value)
+    {
+        GetComponent<UIController>().UpdateSliderValue(value);
+    }
+
+    public void SetSliderValue(float value)
+    {
+        GetComponent<UIController>().SetSlider(value);
+    }
 }
