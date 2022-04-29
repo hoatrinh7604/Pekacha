@@ -61,6 +61,8 @@ public class GameLevelController : MonoBehaviour
         {
             hard.sprite = ticked;
         }
+
+        OpenLevel(false);
     }
 
     public void OpenLevel(bool isEnable)

@@ -23,8 +23,8 @@ public class GameController : MonoBehaviour
     private int remainChoosing;
 
     private int idFirstChoosing;
-    private int firstChoosingRowIndex;
-    private int firstChoosingColIndex;
+    public int firstChoosingRowIndex;
+    public int firstChoosingColIndex;
 
     private int idLastChoosing;
     private int lastChoosingRowIndex;
@@ -82,7 +82,7 @@ public class GameController : MonoBehaviour
     {
         remainChoosing = 2;
         idFirstChoosing = -1;
-        idLastChoosing = -1;
+        idLastChoosing = -2;
 
     }
 
@@ -102,9 +102,9 @@ public class GameController : MonoBehaviour
 
             if(firstChoosingRowIndex == lastChoosingRowIndex && firstChoosingColIndex == lastChoosingColIndex)
             {
-                contentController.UnTicked(firstChoosingRowIndex, firstChoosingColIndex);
-                contentController.UnTicked(lastChoosingRowIndex, lastChoosingColIndex);
+                //contentController.UnTicked(firstChoosingRowIndex, firstChoosingColIndex);
                 StartNewTurn();
+                return;
             }
 
             if(idFirstChoosing == idLastChoosing)
@@ -122,6 +122,7 @@ public class GameController : MonoBehaviour
                         GameOver(true);
                     }
                     StartNewTurn();
+                    return;
                 }
             }
         }

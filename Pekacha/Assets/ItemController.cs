@@ -24,17 +24,27 @@ public class ItemController : MonoBehaviour
 
     public void ChoosingItem()
     {
+        if (isKilled)
+            return;
+        
         isTicked = !isTicked;
 
         if (isTicked)
         {
             button.GetComponent<Image>().color = new Color(0, 0, 0, 0.4f);
-            GameController.Instance.UserChooseItem(id, row, col);
         }
         else
         {
             button.GetComponent<Image>().color = new Color(0, 0, 0, 0);
         }
+        
+        GameController.Instance.UserChooseItem(id, row, col);
+    }
+
+    public void UnTicked()
+    {
+        isTicked = false;
+        button.GetComponent<Image>().color = new Color(0, 0, 0, 0);
     }
 
     public void UpdatePos(int rowValue, int colValue)
@@ -46,7 +56,7 @@ public class ItemController : MonoBehaviour
     public void Hide(bool isHide)
     {
         isKilled = isHide;
-        BG.SetActive(isHide);
+        BG.SetActive(!isHide);
     }
 
     public void ChangeSibling(int index)

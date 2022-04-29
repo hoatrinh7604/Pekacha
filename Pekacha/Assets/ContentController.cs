@@ -41,7 +41,7 @@ public class ContentController : MonoBehaviour
         GameObject rowParent = transform.GetChild(row).gameObject;
         GameObject colParent = rowParent.transform.GetChild(col).gameObject;
 
-        colParent.GetComponent<ItemController>().Hide(false);
+        colParent.GetComponent<ItemController>().Hide(true);
     }
 
     public void UnTicked(int row, int col)
@@ -49,7 +49,7 @@ public class ContentController : MonoBehaviour
         GameObject rowParent = transform.GetChild(row).gameObject;
         GameObject colParent = rowParent.transform.GetChild(col).gameObject;
 
-        colParent.GetComponent<ItemController>().ChoosingItem();
+        colParent.GetComponent<ItemController>().UnTicked();
     }
 
     public void ChangeSibling(int row, int col, int newRow, int newIndex)
